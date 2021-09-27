@@ -115,7 +115,7 @@ class RegisterFile {
   }
 
   readHex(addr: number) {
-    return to16bitHex(this.data[addr]);
+    return to16bitHex(this.data[addr] || 0);
   }
 
   static write(regFile: RegisterFile, addr: number, value: number) {
