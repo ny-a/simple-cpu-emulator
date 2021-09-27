@@ -412,19 +412,19 @@ class Core {
     let newRegisterFile = registerFile;
     let newPhaseCounter = phaseCounter;
     if (phaseCounter.isFetchInstructionPhase()) {
-      const value = this.instructionFetchPhase(newFDRegister.nextPC, newEWRegister.dataRegister, newEWRegister.isBranching, memory);
+      const value = this.instructionFetchPhase(fdRegister.nextPC, ewRegister.dataRegister, ewRegister.isBranching, memory);
       newFDRegister = new FDRegister(value.instruction, value.pc, value.pcNext);
     }
     if (phaseCounter.isDecodeInstructionPhase()) {
-      const value = this.instructionDecodePhase(newFDRegister.instructionRegister, newFDRegister.nextPC);
+      const value = this.instructionDecodePhase(fdRegister.instructionRegister, fdRegister.nextPC);
       newDERegister = new DERegister(value.rRegA, value.rRegB, value.wReg, value.imm, value.aluOpcode, value.branchCondition, value.pcNext, value.finflag);
     }
     if (phaseCounter.isExecutePhase()) {
-      const value = this.executionPhase(newDERegister.branchCondition, newDERegister.aluOpcode, newDERegister.nextPC, newDERegister.readRegisterASelect, newDERegister.readRegisterBSelect, newDERegister.immediate, newDERegister.writeRegisterSelect, newEWRegister.flags, registerFile);
-      newEWRegister = new EWRegister(value.wReg, value.value, value.isBranching, value.flag, newDERegister.finflag);
+      const value = this.executionPhase(deRegister.branchCondition, deRegister.aluOpcode, deRegister.nextPC, deRegister.readRegisterASelect, deRegister.readRegisterBSelect, deRegister.immediate, deRegister.writeRegisterSelect, newEWRegister.flags, registerFile);
+      newEWRegister = new EWRegister(value.wReg, value.value, value.isBranching, value.flag, deRegister.finflag);
     }
     if (phaseCounter.isWriteBackPhase()) {
-      const value = this.writeBackPhase(newEWRegister.writeRegisterSelect, newEWRegister.dataRegister, newEWRegister.finflag, registerFile, newOutputRegister);
+      const value = this.writeBackPhase(ewRegister.writeRegisterSelect, ewRegister.dataRegister, ewRegister.finflag, registerFile, outputRegister);
       newRegisterFile = value.newRegisterFile;
       newOutputRegister = value.newOutputRegister;
     }
