@@ -1119,16 +1119,19 @@ class Home extends React.Component<{}, State> {
                       {this.state.phaseCounter.isFetchInstructionPhase() ? '[' : ''}Phase 0{this.state.phaseCounter.isFetchInstructionPhase() ? ']' : ''}
                     </Grid>
                     <Grid item>
+                      FDRegister
                     </Grid>
                     <Grid item>
                       {this.state.phaseCounter.isDecodeInstructionPhase() ? '[' : ''}Phase 1{this.state.phaseCounter.isDecodeInstructionPhase() ? ']' : ''}
                     </Grid>
                     <Grid item>
+                      DERegister
                     </Grid>
                     <Grid item>
                       {this.state.phaseCounter.isExecutePhase() ? '[' : ''}Phase 2{this.state.phaseCounter.isExecutePhase() ? ']' : ''}
                     </Grid>
                     <Grid item>
+                      EWRegister
                     </Grid>
                     <Grid item>
                       {this.state.phaseCounter.isWriteBackPhase() ? '[' : ''}Phase 3{this.state.phaseCounter.isWriteBackPhase() ? ']' : ''}
@@ -1209,6 +1212,10 @@ class Home extends React.Component<{}, State> {
                       <Box className={styles.devices}>
                         DR<br />
                         {to16bitHex(this.state.ewRegister.dataRegister)}
+                      </Box>
+                      <Box className={styles.devices}>
+                        wReg<br />
+                        {to16bitHex(this.state.ewRegister.writeRegisterSelect)}
                       </Box>
                     </Grid>
                     <Grid item>
