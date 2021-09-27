@@ -1393,7 +1393,7 @@ class Home extends React.Component<{}, State> {
                       ))}
                     </Grid>
                     <Grid item>
-                      {Array.from({length: 4}, (_, x) => x+4).map(i => i + 4).map(i => (
+                      {Array.from({length: 4}, (_, x) => x + 4).map(i => (
                         <p key={i}>
                           R{i}: {this.state.registerFile.readHex(i)}
                         </p>
