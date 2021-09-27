@@ -461,7 +461,7 @@ class Core {
         const aluOpcode = ALUOpcode.ADD;
         const rRegA = RegReadASelect.Zero;
         const rRegB = RegReadBSelect.Imm;
-        const wReg = (instruction & RbMask >> RbShift);
+        const wReg = ((instruction & RbMask) >> RbShift);
         return {
           branchCondition,
           aluOpcode,
