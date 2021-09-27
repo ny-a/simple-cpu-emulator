@@ -145,8 +145,9 @@ class DERegister {
   aluOpcode: number;
   branchCondition: number;
   nextPC: number;
+  finflag: boolean;
 
-  constructor(readRegisterASelect: number = 0, readRegisterBSelect: number = 0, writeRegisterSelect: number = 0, immediate: number = 0, aluOpcode: number = 0, branchCondition: number = 0, nextPC: number = 0) {
+  constructor(readRegisterASelect: number = 0, readRegisterBSelect: number = 0, writeRegisterSelect: number = 0, immediate: number = 0, aluOpcode: number = 0, branchCondition: number = 0, nextPC: number = 0, finflag: boolean = false) {
     this.readRegisterASelect = readRegisterASelect;
     this.readRegisterBSelect = readRegisterBSelect;
     this.writeRegisterSelect = writeRegisterSelect;
@@ -154,6 +155,7 @@ class DERegister {
     this.aluOpcode = aluOpcode;
     this.branchCondition = branchCondition;
     this.nextPC = nextPC;
+    this.finflag = finflag;
   }
 }
 
@@ -167,12 +169,14 @@ class EWRegister {
   dataRegister: number;
   isBranching: boolean;
   flags: number;
+  finflag: boolean;
 
-  constructor(writeRegisterSelect: number = 0, dataRegister: number = 0, isBranching: boolean = false, flags: number = 0) {
+  constructor(writeRegisterSelect: number = 0, dataRegister: number = 0, isBranching: boolean = false, flags: number = 0, finflag: boolean = false) {
     this.writeRegisterSelect = writeRegisterSelect;
     this.dataRegister = dataRegister;
     this.isBranching = isBranching;
     this.flags = flags;
+    this.finflag = finflag;
   }
 
   isFlagS() {
@@ -374,6 +378,7 @@ const RegWriteSelect = {
   R6: 0b0110,
   R7: 0b0111,
   Ignore: 0b1000,
+  OUT: 0b1111,
 }
 
 const ALUOpcode = {
@@ -399,10 +404,11 @@ const BranchCondition = {
 
 
 class Core {
-  main(memory: Memory, registerFile: RegisterFile, fdRegister: FDRegister, deRegister: DERegister, ewRegister: EWRegister, phaseCounter: PhaseCounter) {
+  main(memory: Memory, registerFile: RegisterFile, fdRegister: FDRegister, deRegister: DERegister, ewRegister: EWRegister, outputRegister: OutputRegister, phaseCounter: PhaseCounter) {
     let newFDRegister = fdRegister;
     let newDERegister = deRegister;
     let newEWRegister = ewRegister;
+    let newOutputRegister = outputRegister;
     let newRegisterFile = registerFile;
     let newPhaseCounter = phaseCounter;
     if (phaseCounter.isFetchInstructionPhase()) {
@@ -411,15 +417,16 @@ class Core {
     }
     if (phaseCounter.isDecodeInstructionPhase()) {
       const value = this.instructionDecodePhase(newFDRegister.instructionRegister, newFDRegister.nextPC);
-      newDERegister = new DERegister(value.rRegA, value.rRegB, value.wReg, value.imm, value.aluOpcode, value.branchCondition, value.pcNext);
+      newDERegister = new DERegister(value.rRegA, value.rRegB, value.wReg, value.imm, value.aluOpcode, value.branchCondition, value.pcNext, value.finflag);
     }
     if (phaseCounter.isExecutePhase()) {
       const value = this.executionPhase(newDERegister.branchCondition, newDERegister.aluOpcode, newDERegister.nextPC, newDERegister.readRegisterASelect, newDERegister.readRegisterBSelect, newDERegister.immediate, newDERegister.writeRegisterSelect, newEWRegister.flags, registerFile);
-      newEWRegister = new EWRegister(value.wReg, value.value, value.isBranching, value.flag);
+      newEWRegister = new EWRegister(value.wReg, value.value, value.isBranching, value.flag, newDERegister.finflag);
     }
     if (phaseCounter.isWriteBackPhase()) {
-      const value = this.writeBackPhase(newEWRegister.writeRegisterSelect, newEWRegister.dataRegister, registerFile);
-      newRegisterFile = value;
+      const value = this.writeBackPhase(newEWRegister.writeRegisterSelect, newEWRegister.dataRegister, newEWRegister.finflag, registerFile, newOutputRegister);
+      newRegisterFile = value.newRegisterFile;
+      newOutputRegister = value.newOutputRegister;
     }
     if (phaseCounter instanceof NormalPhaseCounter) {
       newPhaseCounter = NormalPhaseCounter.next(phaseCounter);
@@ -431,6 +438,7 @@ class Core {
       fdRegister: newFDRegister,
       deRegister: newDERegister,
       ewRegister: newEWRegister,
+      outputRegister: newOutputRegister,
       phaseCounter: newPhaseCounter,
     }
   }
@@ -443,6 +451,7 @@ class Core {
   }
 
   instructionDecodePhase(instruction: number, pcNext: number) {
+    const finflag = false;
     const opCode1 = instruction & OpCode1Mask;
 
     if (opCode1 == OpCode1.LD) {
@@ -470,6 +479,7 @@ class Core {
           rRegB,
           imm,
           wReg,
+          finflag,
         }
       }
       else if (opCode2 == OpCode2.Branch) {
@@ -486,6 +496,7 @@ class Core {
           rRegB,
           imm,
           wReg,
+          finflag,
         }
       }
       else if (opCode2 == OpCode2.ConditionalBranch) {
@@ -504,6 +515,7 @@ class Core {
             rRegB,
             imm,
             wReg,
+            finflag,
           }
         }
         else if (cond == BranchConditionCode.BLT) {
@@ -516,6 +528,7 @@ class Core {
             rRegB,
             imm,
             wReg,
+            finflag,
           }
         }
         else if (cond == BranchConditionCode.BLE) {
@@ -528,6 +541,7 @@ class Core {
             rRegB,
             imm,
             wReg,
+            finflag,
           }
         }
         else if (cond == BranchConditionCode.BNE) {
@@ -540,6 +554,7 @@ class Core {
             rRegB,
             imm,
             wReg,
+            finflag,
           }
         }
       }
@@ -561,6 +576,7 @@ class Core {
           rRegB,
           imm,
           wReg,
+          finflag,
         }
       }
       else if (opCode3 == OpCode3.SUB) {
@@ -578,6 +594,7 @@ class Core {
           rRegB,
           imm,
           wReg,
+          finflag,
         }
       }
       else if (opCode3 == OpCode3.AND) {
@@ -595,6 +612,7 @@ class Core {
           rRegB,
           imm,
           wReg,
+          finflag,
         }
       }
       else if (opCode3 == OpCode3.OR) {
@@ -612,6 +630,7 @@ class Core {
           rRegB,
           imm,
           wReg,
+          finflag,
         }
       }
       else if (opCode3 == OpCode3.XOR) {
@@ -629,6 +648,7 @@ class Core {
           rRegB,
           imm,
           wReg,
+          finflag,
         }
       }
       else if (opCode3 == OpCode3.CMP) {
@@ -646,6 +666,7 @@ class Core {
           rRegB,
           imm,
           wReg,
+          finflag,
         }
       }
       else if (opCode3 == OpCode3.MOV) {
@@ -663,6 +684,7 @@ class Core {
           rRegB,
           imm,
           wReg,
+          finflag,
         }
       }
       else if (opCode3 == OpCode3.SLL) {
@@ -682,6 +704,7 @@ class Core {
           rRegB,
           imm,
           wReg,
+          finflag,
         }
       }
       else if (opCode3 == OpCode3.SLR) {
@@ -701,6 +724,7 @@ class Core {
           rRegB,
           imm,
           wReg,
+          finflag,
         }
       }
       else if (opCode3 == OpCode3.SRL) {
@@ -720,6 +744,7 @@ class Core {
           rRegB,
           imm,
           wReg,
+          finflag,
         }
       }
       else if (opCode3 == OpCode3.SRA) {
@@ -739,13 +764,29 @@ class Core {
           rRegB,
           imm,
           wReg,
+          finflag,
         }
       }
       else if (opCode3 == OpCode3.IN) {
         // TODO: Not Implemented
       }
       else if (opCode3 == OpCode3.OUT) {
-        // TODO: Not Implemented
+        const branchCondition = BranchCondition.Never;
+        const aluOpcode = ALUOpcode.ADD;
+        const rRegA = RegReadASelect.Zero;
+        const rRegB = (instruction & RsMask) >> RsShift;
+        const imm = 0;
+        const wReg = RegWriteSelect.OUT;
+        return {
+          branchCondition,
+          aluOpcode,
+          pcNext,
+          rRegA,
+          rRegB,
+          imm,
+          wReg,
+          finflag,
+        }
       }
       else if (opCode3 == OpCode3.HLT) {
         const branchCondition = BranchCondition.Always;
@@ -762,6 +803,7 @@ class Core {
           rRegB,
           imm,
           wReg,
+          finflag: true,
         }
       }
     }
@@ -775,6 +817,7 @@ class Core {
       rRegB: RegReadBSelect.R0,
       imm: 0,
       wReg: RegWriteSelect.Ignore,
+      finflag,
     }
   }
 
@@ -998,32 +1041,83 @@ class Core {
     };
   }
 
-  writeBackPhase(wReg: number, dataRegister: number, registerFile: RegisterFile) {
+  writeBackPhase(wReg: number, dataRegister: number, finflag: boolean, registerFile: RegisterFile, outputRegister: OutputRegister) {
     if (wReg == RegWriteSelect.R0) {
-      return RegisterFile.write(registerFile, wReg, dataRegister);
+      const newOutputRegister = new OutputRegister(outputRegister.output, outputRegister.finFlag || finflag);
+      const newRegisterFile = RegisterFile.write(registerFile, wReg, dataRegister);
+      return {
+        newRegisterFile,
+        newOutputRegister,
+      }
     }
     else if (wReg == RegWriteSelect.R1) {
-      return RegisterFile.write(registerFile, wReg, dataRegister);
+      const newOutputRegister = new OutputRegister(outputRegister.output, outputRegister.finFlag || finflag);
+      const newRegisterFile = RegisterFile.write(registerFile, wReg, dataRegister);
+      return {
+        newRegisterFile,
+        newOutputRegister,
+      }
     }
     else if (wReg == RegWriteSelect.R2) {
-      return RegisterFile.write(registerFile, wReg, dataRegister);
+      const newOutputRegister = new OutputRegister(outputRegister.output, outputRegister.finFlag || finflag);
+      const newRegisterFile = RegisterFile.write(registerFile, wReg, dataRegister);
+      return {
+        newRegisterFile,
+        newOutputRegister,
+      }
     }
     else if (wReg == RegWriteSelect.R3) {
-      return RegisterFile.write(registerFile, wReg, dataRegister);
+      const newOutputRegister = new OutputRegister(outputRegister.output, outputRegister.finFlag || finflag);
+      const newRegisterFile = RegisterFile.write(registerFile, wReg, dataRegister);
+      return {
+        newRegisterFile,
+        newOutputRegister,
+      }
     }
     else if (wReg == RegWriteSelect.R4) {
-      return RegisterFile.write(registerFile, wReg, dataRegister);
+      const newOutputRegister = new OutputRegister(outputRegister.output, outputRegister.finFlag || finflag);
+      const newRegisterFile = RegisterFile.write(registerFile, wReg, dataRegister);
+      return {
+        newRegisterFile,
+        newOutputRegister,
+      }
     }
     else if (wReg == RegWriteSelect.R5) {
-      return RegisterFile.write(registerFile, wReg, dataRegister);
+      const newOutputRegister = new OutputRegister(outputRegister.output, outputRegister.finFlag || finflag);
+      const newRegisterFile = RegisterFile.write(registerFile, wReg, dataRegister);
+      return {
+        newRegisterFile,
+        newOutputRegister,
+      }
     }
     else if (wReg == RegWriteSelect.R6) {
-      return RegisterFile.write(registerFile, wReg, dataRegister);
+      const newOutputRegister = new OutputRegister(outputRegister.output, outputRegister.finFlag || finflag);
+      const newRegisterFile = RegisterFile.write(registerFile, wReg, dataRegister);
+      return {
+        newRegisterFile,
+        newOutputRegister,
+      }
     }
     else if (wReg == RegWriteSelect.R7) {
-      return RegisterFile.write(registerFile, wReg, dataRegister);
+      const newOutputRegister = new OutputRegister(outputRegister.output, outputRegister.finFlag || finflag);
+      const newRegisterFile = RegisterFile.write(registerFile, wReg, dataRegister);
+      return {
+        newRegisterFile,
+        newOutputRegister,
+      }
     }
-    return registerFile;
+    else if (wReg == RegWriteSelect.OUT) {
+      const newOutputRegister = new OutputRegister(dataRegister, outputRegister.finFlag || finflag);
+      return {
+        newRegisterFile: registerFile,
+        newOutputRegister,
+      }
+    }
+    const newOutputRegister = new OutputRegister(outputRegister.output, outputRegister.finFlag || finflag);
+    return {
+      newRegisterFile: registerFile,
+      newOutputRegister,
+    };
   }
 }
 
@@ -1036,6 +1130,7 @@ interface State {
   fdRegister: FDRegister;
   deRegister: DERegister;
   ewRegister: EWRegister;
+  outputRegister: OutputRegister;
   phaseCounter: PhaseCounter;
   core: Core;
 }
@@ -1045,27 +1140,36 @@ class Home extends React.Component<{}, State> {
   memAddressInput = React.createRef<HTMLInputElement>();
   constructor(props: {}) {
     super(props)
-    this.state = {
-      memory: new Memory([], 0),
-      registerFile: new RegisterFile(),
-      fdRegister: new FDRegister(),
-      deRegister: new DERegister(),
-      ewRegister: new EWRegister(),
-      phaseCounter: new NormalPhaseCounter(),
-      core: new Core(),
-    }
+    this.state = Home.initialState();
   }
 
+  static initialState = () => ({
+    memory: new Memory([], 0),
+    registerFile: new RegisterFile(),
+    fdRegister: new FDRegister(),
+    deRegister: new DERegister(),
+    ewRegister: new EWRegister(),
+    outputRegister: new OutputRegister(),
+    phaseCounter: new NormalPhaseCounter(),
+    core: new Core(),
+  });
+
   handleUploadMif = () => {
-    const files = this.mifFileInput.current?.files;
-    if (files) {
-      files[0].text().then(content => {
-        const memory = Memory.importFromMif(content);
-        if (memory) {
-          this.setState({ memory });
-        }
-      })
+    const input = this.mifFileInput.current;
+    if (!input) {
+      return;
     }
+    const files = input.files;
+    if (!files || !files[0]) {
+      return;
+    }
+    files[0].text().then(content => {
+      const memory = Memory.importFromMif(content);
+      if (memory) {
+        this.setState({ memory });
+      }
+      input.value = "";
+    })
   }
 
   onChangeMemAddressDown = () => {
@@ -1078,8 +1182,24 @@ class Home extends React.Component<{}, State> {
 
   stepExecute = () => {
     this.setState(state => {
-      return state.core.main(state.memory, state.registerFile, state.fdRegister, state.deRegister, state.ewRegister, state.phaseCounter);
+      return state.core.main(state.memory, state.registerFile, state.fdRegister, state.deRegister, state.ewRegister, state.outputRegister, state.phaseCounter);
     })
+  }
+
+  runUntilFinish = () => {
+    this.setState(state => {
+      const core = state.core;
+      let newState = state;
+      while(!newState.outputRegister.finFlag) {
+        const value = core.main(newState.memory, newState.registerFile, newState.fdRegister, newState.deRegister, newState.ewRegister, newState.outputRegister, newState.phaseCounter);
+        newState = {...value, core};
+      }
+      return newState;
+    })
+  }
+
+  resetState = () => {
+    this.setState(Home.initialState());
   }
 
   render() {
@@ -1222,6 +1342,14 @@ class Home extends React.Component<{}, State> {
                       <Box className={styles.devices}>
                         Register
                       </Box>
+                      <Box className={styles.devices}>
+                        Output<br />
+                        {to16bitHex(this.state.outputRegister.output)}
+                      </Box>
+                      <Box className={styles.devices}>
+                        finflag<br />
+                        {this.state.outputRegister.finFlag.toString()}
+                      </Box>
                     </Grid>
                   </Grid>
                 </Box>
@@ -1235,6 +1363,9 @@ class Home extends React.Component<{}, State> {
                     <Button variant="contained" component="span" size="small" onClick={this.stepExecute}>
                       Step Execute
                     </Button>
+                    <Button variant="contained" component="span" size="small" onClick={this.runUntilFinish}>
+                      Run
+                    </Button>
                   </p>
                   <p>
                     <label htmlFor="upload-file">
@@ -1243,6 +1374,11 @@ class Home extends React.Component<{}, State> {
                         load mif to memory
                       </Button>
                     </label>
+                  </p>
+                  <p>
+                    <Button variant="contained" component="span" color="error" size="small" onClick={this.resetState}>
+                      Reset All State
+                    </Button>
                   </p>
                 </Box>
               </Grid>
