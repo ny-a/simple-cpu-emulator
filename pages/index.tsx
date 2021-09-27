@@ -1137,7 +1137,8 @@ class Home extends React.Component<{}, State> {
                   <Grid container justifyContent="space-around">
                     <Grid item>
                       <Box className={styles.devices}>
-                        PC
+                        PC<br />
+                        {to16bitHex(this.state.fdRegister.pc)}
                       </Box>
                       <Box className={styles.devices}>
                         Memory
@@ -1145,10 +1146,12 @@ class Home extends React.Component<{}, State> {
                     </Grid>
                     <Grid item>
                       <Box className={styles.devices}>
-                        PCNext
+                        PCNext<br />
+                        {to16bitHex(this.state.fdRegister.nextPC)}
                       </Box>
                       <Box className={styles.devices}>
-                        IR
+                        IR<br />
+                        {to16bitHex(this.state.fdRegister.instructionRegister)}
                       </Box>
                     </Grid>
                     <Grid item>
@@ -1158,25 +1161,32 @@ class Home extends React.Component<{}, State> {
                     </Grid>
                     <Grid item>
                       <Box className={styles.devices}>
-                        Branch
+                        Branch<br />
+                        {to16bitHex(this.state.deRegister.branchCondition)}
                       </Box>
                       <Box className={styles.devices}>
-                        ALUOp
+                        ALUOp<br />
+                        {to16bitHex(this.state.deRegister.aluOpcode)}
                       </Box>
                       <Box className={styles.devices}>
-                        PCNext
+                        PCNext<br />
+                        {to16bitHex(this.state.deRegister.nextPC)}
                       </Box>
                       <Box className={styles.devices}>
-                        rRegA
+                        rRegA<br />
+                        {to16bitHex(this.state.deRegister.readRegisterASelect)}
                       </Box>
                       <Box className={styles.devices}>
-                        rRegB
+                        rRegB<br />
+                        {to16bitHex(this.state.deRegister.readRegisterBSelect)}
                       </Box>
                       <Box className={styles.devices}>
-                        Imm
+                        Imm<br />
+                        {to16bitHex(this.state.deRegister.immediate)}
                       </Box>
                       <Box className={styles.devices}>
-                        wReg
+                        wReg<br />
+                        {to16bitHex(this.state.deRegister.writeRegisterSelect)}
                       </Box>
                     </Grid>
                     <Grid item>
@@ -1189,13 +1199,16 @@ class Home extends React.Component<{}, State> {
                     </Grid>
                     <Grid item>
                       <Box className={styles.devices}>
-                        isBranch
+                        isBranch<br />
+                        {this.state.ewRegister.isBranching.toString()}
                       </Box>
                       <Box className={styles.devices}>
-                        Flags
+                        Flags<br />
+                        {to16bitHex(this.state.ewRegister.flags)}
                       </Box>
                       <Box className={styles.devices}>
-                        DR
+                        DR<br />
+                        {to16bitHex(this.state.ewRegister.dataRegister)}
                       </Box>
                     </Grid>
                     <Grid item>
